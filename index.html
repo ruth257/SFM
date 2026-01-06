@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Friendly Prompting - Calibration Tool for High-Density Inquiry</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: #0B0B0B;
+            color: #FFFFFF;
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            padding: 40px 0;
+            border-bottom: 1px solid #222;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            margin-bottom: 10px;
+            letter-spacing: -0.5px;
+        }
+
+        .tagline {
+            color: #888;
+            font-size: 1.2rem;
+            font-weight: 300;
+            margin-top: 10px;
+        }
+
+        .highlight {
+            color: #FFB000;
+        }
+
+        .api-key-section {
+            background: #111;
+            border: 1px solid #222;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 40px;
+        }
+
+        .api-key-section h3 {
+            font-size: 1rem;
+            font-weight: 400;
+            margin-bottom: 10px;
+            color: #FFB000;
+        }
+
+        .api-key-section input {
+            width: 100%;
+            background: #0B0B0B;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 12px;
+            color: #FFF;
+            font-size: 0.9rem;
+            font-family: 'Monaco', 'Courier New', monospace;
+        }
+
+        .api-key-section small {
+            display: block;
+            margin-top: 8px;
+            color: #666;
+            font-size: 0.85rem;
+        }
+
+        .api-key-section a {
+            color: #FFB000;
+            text-decoration: none;
+        }
+
+        .input-section {
+            margin-bottom: 40px;
+        }
+
+        .input-section label {
+            display: block;
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        textarea {
+            width: 100%;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            color: #FFF;
+            font-size: 1.1rem;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 120px;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #FFB000;
+        }
+
+        .btn {
+            background: #FFB000;
+            color: #0B0B0B;
+            border: none;
+            border-radius: 6px;
+            padding: 16px 40px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover:not(:disabled) {
+            background: #FFC933;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #222;
+            color: #FFF;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #333;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 3px solid #333;
+            border-top-color: #FFB000;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .fork-section, .ghost-section, .results-section {
+            margin: 40px 0;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fork-section h2, .ghost-section h2, .results-section h2 {
+            font-size: 1.5rem;
+            font-weight: 300;
+            margin-bottom: 20px;
+            color: #FFB000;
+        }
+
+        .fork-cards {
+            display: grid;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .fork-card {
+            background: #111;
+            border: 1px solid #222;
+            border-radius: 8px;
+            padding: 24px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .fork-card:hover {
+            border-color: #FFB000;
+            transform: translateY(-4px);
+        }
+
+        .fork-card.selected {
+            border-color: #FFB000;
+            background: #1a1300;
+        }
+
+        .fork-card h3 {
+            font-size: 1.2rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #FFB000;
+        }
+
+        .fork-card .pillar {
+            display: inline-block;
+            background: #222;
+            color: #888;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .fork-card p {
+            color: #AAA;
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
+        .ghost-cards {
+            display: grid;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .ghost-card {
+            background: #111;
+            border: 1px solid #222;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .ghost-card h4 {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .ghost-options {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .ghost-option {
+            padding: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            font-size: 1rem;
+        }
+
+        .ghost-option.cold {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            color: #888;
+        }
+
+        .ghost-option.hot {
+            background: #1a1300;
+            border: 1px solid #FFB000;
+            color: #FFB000;
+        }
+
+        .ghost-option.hot:hover {
+            background: #2a2000;
+            transform: scale(1.05);
+        }
+
+        .ghost-option.selected {
+            border-width: 2px;
+            font-weight: 600;
+        }
+
+        .ghost-arrow {
+            color: #444;
+            font-size: 1.5rem;
+            text-align: center;
+        }
+
+        .results-section {
+            padding: 30px;
+            background: #111;
+            border: 1px solid #222;
+            border-radius: 8px;
+        }
+
+        .optimized-prompt {
+            background: #0B0B0B;
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 20px;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            color: #FFF;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .metric {
+            background: #0B0B0B;
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #FFB000;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .metric-label {
+            color: #888;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .category-btn {
+            background: #222;
+            color: #888;
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .category-btn:hover {
+            border-color: #FFB000;
+            color: #FFB000;
+        }
+
+        .category-btn.active {
+            background: #1a1300;
+            border-color: #FFB000;
+            color: #FFB000;
+        }
+
+        .prompt-item {
+            background: #111;
+            border: 1px solid #222;
+            border-radius: 6px;
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: left;
+            color: #AAA;
+            font-size: 0.9rem;
+        }
+
+        .prompt-item:hover {
+            border-color: #FFB000;
+            color: #FFF;
+            transform: translateX(4px);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .info-box {
+            background: #1a1300;
+            border: 1px solid #FFB000;
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 20px;
+            color: #FFB000;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .ghost-options {
+                grid-template-columns: 1fr;
+            }
+            
+            .ghost-arrow {
+                transform: rotate(90deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 style="font-size: 2rem; font-weight: 400; line-height: 1.4; margin-bottom: 30px; max-width: 900px; margin-left: auto; margin-right: auto;">"I have only made this prompt longer because I have not had the time to make it shorter."</h1>
+            <p style="color: #AAA; font-size: 1rem; max-width: 700px; margin: 0 auto; line-height: 1.6;">
+                LLM Friendly Prompting is a human-AI collaboration tool for simple, high-density inquiry. Move from <span style="color: #666;">prompting</span> to <span class="highlight">asking</span> in two clicks.
+            </p>
+        </header>
+
+        <div class="api-key-section">
+            <h3>🔑 API Configuration</h3>
+            <div style="margin-bottom: 15px;">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="demoMode" onchange="toggleDemoMode()" style="width: auto;">
+                    <span style="color: #FFB000;">Try Demo Mode (no API key needed)</span>
+                </label>
+            </div>
+            <div id="apiKeyInput">
+                <input 
+                    type="password" 
+                    id="apiKey" 
+                    placeholder="Enter your Anthropic API key (sk-ant-...)"
+                >
+                <small>Get your API key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> ($5 free credit to start)</small>
+            </div>
+            <div id="demoModeInfo" class="hidden" style="padding: 10px; background: #1a1300; border: 1px solid #FFB000; border-radius: 4px; margin-top: 10px;">
+                <small style="color: #FFB000;">✨ Demo mode active - choose a category and example below<br>
+                <span style="color: #888; font-size: 0.85em;">Note: Demo uses pre-computed examples to illustrate the method. Your results will vary.</span></small>
+            </div>
+        </div>
+
+        <section class="input-section">
+            <label for="userPrompt">✨ Enter Your Prompt</label>
+            
+            <div id="demoExamples" class="hidden" style="margin-bottom: 20px;">
+                <p style="color: #888; font-size: 0.9rem; margin-bottom: 15px;">Choose a category and example:</p>
+                
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                        <button class="category-btn active" onclick="showCategory('business')" data-category="business">
+                            💼 Business
+                        </button>
+                        <button class="category-btn" onclick="showCategory('career')" data-category="career">
+                            📈 Career
+                        </button>
+                        <button class="category-btn" onclick="showCategory('creative')" data-category="creative">
+                            ✍️ Creative
+                        </button>
+                        <button class="category-btn" onclick="showCategory('personal')" data-category="personal">
+                            🧘 Personal/Health
+                        </button>
+                    </div>
+                    
+                    <div id="promptsList" style="display: grid; gap: 8px;">
+                        <!-- Prompts will be populated here -->
+                    </div>
+                </div>
+            </div>
+            
+            <textarea 
+                id="userPrompt" 
+                placeholder="Example: Help me improve my relationship with my teenage daughter"
+                readonly
+            ></textarea>
+            <br><br>
+            <button class="btn" id="analyzeBtn" onclick="analyzePrompt()">Analyze Prompt</button>
+        </section>
+
+        <div id="loadingState" class="loading hidden">
+            <div class="spinner"></div>
+            <p>Detecting ambiguity in your thinking...</p>
+        </div>
+
+        <section id="forkSection" class="fork-section hidden">
+            <h2>⚠️ Strategic Fork Detected</h2>
+            <p style="color: #888; margin-bottom: 20px;">Your phrase has multiple meanings. Pick your direction:</p>
+            <div id="forkCards" class="fork-cards"></div>
+            <button class="btn" id="continueBtn" onclick="showFulcrums()" disabled>Continue →</button>
+        </section>
+
+        <section id="ghostSection" class="ghost-section hidden">
+            <h2>🔍 Refine Your Terms</h2>
+            <p style="color: #888; margin-bottom: 20px;">Click 🔥 to upgrade vague terms to expert precision:</p>
+            <div id="ghostCards" class="ghost-cards"></div>
+            <br>
+            <button class="btn" id="optimizeBtn" onclick="generateOptimized()">Generate Optimized Prompt</button>
+        </section>
+
+        <section id="resultsSection" class="results-section hidden">
+            <h2>✅ Optimized Prompt</h2>
+            <div class="optimized-prompt" id="optimizedPrompt"></div>
+            
+            <div class="metrics">
+                <div class="metric">
+                    <span class="metric-value" id="tokensSaved">0</span>
+                    <span class="metric-label">Tokens Saved</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-value" id="compressionRatio">0%</span>
+                    <span class="metric-label">Compression</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-value" id="clarityGain">+0%</span>
+                    <span class="metric-label">Clarity Gain</span>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn" onclick="copyToClipboard()">📋 Copy to Clipboard</button>
+                <button class="btn btn-secondary" onclick="openInChatGPT()">💬 Open in ChatGPT</button>
+                <button class="btn btn-secondary" onclick="openInClaude()">🤖 Open in Claude</button>
+                <button class="btn btn-secondary" onclick="resetTool()">↻ Try Another</button>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Demo mode flag
+        let isDemoMode = false;
+        let currentDemoPrompt = null;
+        let currentCategory = 'business';
+        
+        // Categorized demo prompts with multiple outcome paths
+        const DEMO_PROMPTS = {
+            business: [
+                {
+                    id: 'investor_pitch',
+                    prompt: "Help me position my company to investors better",
+                    analysis: {
+                        pseudo_antonym_clusters: [{
+                            phrase: "position better",
+                            branches: [
+                                { term: "Reduce Risk Perception", pillar: "De-risking Strategy", context: "Emphasize traction, defensibility, and proven execution to make the investment feel safer" },
+                                { term: "Increase Upside Potential", pillar: "Vision Amplification", context: "Paint a bigger TAM picture, showcase scalability, and demonstrate category leadership potential" },
+                                { term: "Strengthen Competitive Edge", pillar: "Differentiation", context: "Clarify what you do that competitors can't replicate - your moat and unique advantages" }
+                            ]
+                        }],
+                        fulcrum_tokens: [
+                            { original: "company", alternatives: [{ term: "Series A fintech startup" }, { term: "pre-revenue climate tech venture" }] },
+                            { original: "investors", alternatives: [{ term: "tier-1 VCs" }, { term: "corporate venture arms" }] }
+                        ],
+                        noise_segments: ["Help me", "better"]
+                    },
+                    outcomes: {
+                        "Reduce Risk Perception_Series A fintech startup_tier-1 VCs": {
+                            optimized_prompt: "Risk reduction narrative for Series A fintech targeting tier-1 VCs: emphasize regulatory moat and enterprise traction",
+                            metrics: { original_tokens: 9, optimized_tokens: 17, tokens_saved: 0, compression_ratio: "0%", clarity_gain: "+78%" }
+                        },
+                        "Increase Upside Potential_Series A fintech startup_tier-1 VCs": {
+                            optimized_prompt: "Vision narrative for Series A fintech targeting tier-1 VCs: demonstrate $10B+ TAM and path to category dominance",
+                            metrics: { original_tokens: 9, optimized_tokens: 17, tokens_saved: 0, compression_ratio: "0%", clarity_gain: "+75%" }
+                        },
+                        "Strengthen Competitive Edge_pre-revenue climate tech venture_corporate venture arms": {
+                            optimized_prompt: "Moat narrative for pre-revenue climate tech targeting corporate VCs: proprietary technology and strategic partnerships",
+                            metrics: { original_tokens: 9, optimized_tokens: 16, tokens_saved: 0, compression_ratio: "0%", clarity_gain: "+80%" }
+                        }
+                    }
+                },
+                {
+                    id: 'pricing',
+                    prompt: "Help me figure out the right pricing for my product",
+                    analysis: {
+                        pseudo_antonym_clusters: [{
+                            phrase: "right pricing",
+                            branches: [
+                                { term: "Value-Based Pricing", pillar: "Willingness to Pay", context: "Price based on the value delivered to customers, not your costs" },
+                                { term: "Competitive Pricing", pillar: "Market Position", context: "Price relative to competitors to win market share or signal premium quality" },
+                                { term: "Cost-Plus Pricing", pillar: "Margin Optimization", context: "Calculate costs and add desired margin to ensure profitability" }
+                            ]
+                        }],
+                        fulcrum_tokens: [
+                            { original: "product", alternatives: [{ term: "B2B SaaS platform" }, { term: "DTC consumer product" }] }
+                        ],
+                        noise_segments: ["Help me", "figure out"]
+                    },
+                    outcomes: {
+                        "Value-Based Pricing_B2B SaaS platform": {
+                            optimized_prompt: "Value-based pricing model for B2B SaaS: calculate customer ROI and capture 20% of value created",
+                            metrics: { original_tokens: 11, optimized_tokens: 16, tokens_saved: 0, compression_ratio: "0%", clarity_gain: "+72%" }
+                        },
+                        "Competitive Pricing_DTC consumer product": {
+                            optimized_prompt: "Competitive pricing strategy for DTC product: position 15% premium to mass market, 20% below luxury tier",
+                            metrics: { original_tokens: 11, optimized_tokens: 17, tokens_saved: 0, compression_ratio: "0%", clarity_gain: "+70%" }
+                        }
+                    }
+                }
+            ],
+            career: [
+                {
+                    id: 'career_growth',
+                    prompt: "I need to improve my career prospects in tech",
+                    analysis: {
+                        pseudo_antonym_clusters: [{
+                            phrase: "improve career prospects",
+                            branches: [
+                                { term: "Skill Acquisition", pillar: "Capability Building", context: "Learn new technical skills, certifications, or domain expertise to become more valuable" },
+                                { term: "Network Expansion", pillar: "Relationship Capital", context: "Build strategic relationships with decision-makers, mentors, and industry leaders" },
+                                { term: "Visibility Enhancement", pillar: "Personal Brand", context: "Increase your public profile through content, speaking, or open-source contributions" }
+                            ]
+                        }],
+                        fulcrum_tokens: [
+                            { original: "tech", alternatives: [{ term: "AI/ML engineering" }, { term: "product management" }] }
+                        ],
+                        noise_segments: ["I need to"]
+                    },
+                    outcomes: {
+                        "Skill Acquisition_AI/ML engineering": {
+                            optimized_prompt: "Skill acquisition roadmap for AI/ML engineer: deep learning specialization + production ML systems certification",
+                            metrics: { original_tokens: 10, optimized_tokens: 15, tokens_saved: 0, compression_ratio: "0%", clarity_gain: "+75%" }
+                        },
+                        "Visibility Enhancement_AI/ML engineering": {
+                            optimized_prompt: "Personal brand strategy for AI/ML engineer: technical blog + conference speaking to attract FAANG recruiters",
+                            metrics: { original_tokens: 10, optimized_tokens: 16, tokens_saved: 0, compression_ratio: "0%", clarity_gain: "+82%" }
+                        },
+                        "Network Expansion_product management": {
+                            optimized_prompt: "Network expansion plan for product manager: join PM communities, attend industry events, build mentor relationships",
+                            metrics: { original_tokens: 10, optimized_tokens: 15, tokens_saved: 0, compression_ratio: "0%", clarity_gain: "+77%" }
+                        }
+                    }
+                },
+                {
+                    id: 'job_search',
+                    prompt: "Help me find a better job in my field",
+                    analysis: {
+                        pseudo_antonym_clusters: [{
+                            phrase: "better job",
+                            branches: [
+                                { term: "Higher Compensation", pillar: "Financial Optimization", context: "Maximize total compensation including salary, equity, and benefits" },
+                                { term: "Better Work-Life Balance", pillar: "Lifestyle Optimization", context: "Reduce hours, increase flexibility, or find remote opportunities" },
+                                { term: "Faster Career Growth", pillar: "Advancement Velocity", context: "Join high-growth companies or roles with clearer promotion paths" }
+                            ]
+                        }],
+                        fulcrum_tokens: [
+                            { original: "field", alternatives: [{ term: "software engineering" }, { term: "marketing" }] }
+                        ],
+                        noise_segments: ["Help me"]
+                    },
+                    outcomes: {
+                        "Higher Compensation_software engineering": {
+                            optimized_prompt: "Compensation optimization for software engineer: target FAANG+ companies, negotiate competing offers, prioritize equity",
+                            metrics: { original_tokens: 10, optimized_tokens: 14, tokens_saved: 0, compression_ratio: "0%", clarity_gain: "+73%" }
+                        },
+                        "Better Work-Life Balance_software engineering": {
+                            optimized_prompt: "Work-life balance optimization for software engineer: target mature companies with 40-hour weeks and remote flexibility",
+                            metrics: { original_tokens: 10, optimized_tokens: 15, tokens_saved: 0, compression_ratio: "0%", clarity_gain: "+71%" }
+                        }
+                    }
+                }
+            ],
+            creative: [
+                {
+                    id: 'story_writing',
+                    prompt: "Write a story about AI that makes people think",
+                    analysis: {
+                        pseudo_antonym_clusters: [{
+                            phrase: "makes people think",
+                            branches: [
+                                { term: "Philosophical Questioning", pillar: "Existential Fiction", context: "Explore deep questions about consciousness, identity, or what it means to be human" },
+                                { term: "Social Commentary", pillar: "Cautionary Tale", context: "Critique current societal trends, power structures, or technological dependencies" },
+                                { term: "Emotional Resonance", pillar: "Character-Driven Drama", context: "Create deeply relatable characters whose AI-influenced struggles mirror human experiences" }
+                            ]
+                        }],
+                        fulcrum_tokens: [
+                            { original: "story", alternatives: [{ term: "short story (2,000 words)" }, { term: "microfiction (300 words)" }] },
+                            { original: "AI", alternatives: [{ term: "AGI consciousness" }, { term: "AI romantic companion" }] }
+                        ],
+                        noise_segments: ["Write a", "that makes people think"]
+                    },
+                    outcomes: {
+                        "Philosophical Questioning_microfiction (300 words)_AGI consciousness": {
+                            optimized_prompt: "Microfiction exploring consciousness paradox: AGI claims sentience, protagonist must decide if subjective experience matters",
+                            metrics: { original_tokens: 11, optimized_tokens: 15, tokens_saved: 0, compression_ratio: "0%", clarity_gain: "+85%" }
+                        },
+                        "Social Commentary_short story (2,000 words)_AI romantic companion": {
+                            optimized_prompt: "Short story critiquing emotional dependency: society where AI companions replace human relationships, exploring isolation",
+                            metrics: { original_tokens: 11, optimized_tokens: 15, tokens_saved: 0, compression_ratio: "0%", clarity_gain: "+83%" }
+                        }
+                    }
+                },
+                {
+                    id: 'brand_voice',
+                    prompt: "Help me develop my brand voice for social media",
+                    analysis: {
+                        pseudo_antonym_clusters: [{
+                            phrase: "brand voice",
+                            branches: [
+                                { term: "Educational Authority", pillar: "Thought Leadership", context: "Position as an expert who teaches and shares valuable insights" },
+                                { term: "Relatable Authenticity", pillar: "Personal Connection", context: "Share vulnerably, build trust through genuine stories and experiences" },
+                                { term: "Entertaining Personality", pillar: "Engagement Optimization", context: "Create shareable, memorable content with humor or distinctive style" }
+                            ]
+                        }],
+                        fulcrum_tokens: [
+                            { original: "social media", alternatives: [{ term: "LinkedIn" }, { term: "Instagram" }] }
+                        ],
+                        noise_segments: ["Help me develop"]
+                    },
+                    outcomes: {
+                        "Educational Authority_LinkedIn": {
+                            optimized_prompt: "Educational brand voice for LinkedIn: tactical insights + frameworks + data-driven analysis to build thought leadership",
+                            metrics: { original_tokens: 10, optimized_tokens: 15, tokens_saved: 0, compression_ratio: "0%", clarity_gain: "+76%" }
+                        },
+                        "Relatable Authenticity_Instagram": {
+                            optimized_prompt: "Authentic brand voice for Instagram: behind-the-scenes stories + vulnerability + real struggles to build personal connection",
+                            metrics: { original_tokens: 10, optimized_tokens: 15, tokens_saved: 0, compression_ratio: "0%", clarity_gain: "+74%" }
+                        }
+                    }
+                }
+            ],
+            personal: [
+                {
+                    id: 'weight_loss',
+                    prompt: "Help me lose weight and get healthier",
+                    analysis: {
+                        pseudo_antonym_clusters: [{
+                            phrase: "lose weight and get healthier",
+                            branches: [
+                                { term: "Caloric Deficit Focus", pillar: "Weight Loss Priority", context: "Prioritize fat loss through controlled calorie intake, accepting some discomfort" },
+                                { term: "Metabolic Health Focus", pillar: "Long-term Wellness", context: "Improve insulin sensitivity, inflammation markers, and energy - weight loss as byproduct" },
+                                { term: "Sustainable Lifestyle", pillar: "Habit Formation", context: "Build enjoyable habits that last forever, slower progress but no rebound" }
+                            ]
+                        }],
+                        fulcrum_tokens: [
+                            { original: "lose weight", alternatives: [{ term: "lose 30 pounds" }, { term: "lose 10% body fat" }] }
+                        ],
+                        noise_segments: ["Help me", "and get healthier"]
+                    },
+                    outcomes: {
+                        "Caloric Deficit Focus_lose 30 pounds": {
+                            optimized_prompt: "12-week caloric deficit protocol for 30-pound weight loss: 500 calorie deficit, high protein, strength training 3x/week",
+                            metrics: { original_tokens: 8, optimized_tokens: 17, tokens_saved: 0, compression_ratio: "0%", clarity_gain: "+80%" }
+                        },
+                        "Metabolic Health Focus_lose 10% body fat": {
+                            optimized_prompt: "Metabolic health optimization for body recomposition: eliminate ultra-processed foods, prioritize sleep, reduce inflammation",
+                            metrics: { original_tokens: 8, optimized_tokens: 14, tokens_saved: 0, compression_ratio: "0%", clarity_gain: "+77%" }
+                        },
+                        "Sustainable Lifestyle_lose 30 pounds": {
+                            optimized_prompt: "Sustainable habit formation for gradual weight loss: add vegetables to meals, walk 30min daily, one change per month",
+                            metrics: { original_tokens: 8, optimized_tokens: 18, tokens_saved: 0, compression_ratio: "0%", clarity_gain: "+75%" }
+                        }
+                    }
+                },
+                {
+                    id: 'anxiety',
+                    prompt: "I want to manage my anxiety better",
+                    analysis: {
+                        pseudo_antonym_clusters: [{
+                            phrase: "manage anxiety",
+                            branches: [
+                                { term: "Symptom Reduction", pillar: "Acute Relief", context: "Learn techniques to reduce physical anxiety symptoms when they occur (breathing, grounding)" },
+                                { term: "Root Cause Work", pillar: "Therapeutic Processing", context: "Address underlying fears, beliefs, or trauma driving the anxiety with professional help" },
+                                { term: "Lifestyle Optimization", pillar: "Preventive Approach", context: "Reduce anxiety triggers through sleep, exercise, caffeine reduction, and stress management" }
+                            ]
+                        }],
+                        fulcrum_tokens: [
+                            { original: "anxiety", alternatives: [{ term: "social anxiety" }, { term: "generalized anxiety" }] }
+                        ],
+                        noise_segments: ["I want to", "better"]
+                    },
+                    outcomes: {
+                        "Symptom Reduction_social anxiety": {
+                            optimized_prompt: "Acute symptom management for social anxiety: box breathing before events, progressive muscle relaxation, grounding techniques",
+                            metrics: { original_tokens: 8, optimized_tokens: 15, tokens_saved: 0, compression_ratio: "0%", clarity_gain: "+78%" }
+                        },
+                        "Root Cause Work_generalized anxiety": {
+                            optimized_prompt: "Therapeutic approach for generalized anxiety: CBT with licensed therapist, identify catastrophic thinking patterns, cognitive restructuring",
+                            metrics: { original_tokens: 8, optimized_tokens: 15, tokens_saved: 0, compression_ratio: "0%", clarity_gain: "+82%" }
+                        },
+                        "Lifestyle Optimization_generalized anxiety": {
+                            optimized_prompt: "Lifestyle protocol for anxiety prevention: 8-hour sleep priority, 30min daily cardio, eliminate caffeine after noon, meditation practice",
+                            metrics: { original_tokens: 8, optimized_tokens: 17, tokens_saved: 0, compression_ratio: "0%", clarity_gain: "+76%" }
+                        }
+                    }
+                },
+                {
+                    id: 'sleep',
+                    prompt: "Help me sleep better at night",
+                    analysis: {
+                        pseudo_antonym_clusters: [{
+                            phrase: "sleep better",
+                            branches: [
+                                { term: "Fall Asleep Faster", pillar: "Sleep Onset", context: "Reduce the time it takes to fall asleep initially" },
+                                { term: "Stay Asleep Longer", pillar: "Sleep Maintenance", context: "Prevent middle-of-night awakenings and early morning waking" },
+                                { term: "Improve Sleep Quality", pillar: "Deep Sleep Optimization", context: "Increase deep and REM sleep stages for better recovery" }
+                            ]
+                        }],
+                        fulcrum_tokens: [
+                            { original: "at night", alternatives: [{ term: "consistently by 10pm" }, { term: "despite shift work" }] }
+                        ],
+                        noise_segments: ["Help me"]
+                    },
+                    outcomes: {
+                        "Fall Asleep Faster_consistently by 10pm": {
+                            optimized_prompt: "Sleep onset optimization for 10pm bedtime: dim lights 8pm onwards, no screens 1hr before bed, magnesium glycinate supplement",
+                            metrics: { original_tokens: 7, optimized_tokens: 17, tokens_saved: 0, compression_ratio: "0%", clarity_gain: "+81%" }
+                        },
+                        "Stay Asleep Longer_despite shift work": {
+                            optimized_prompt: "Sleep maintenance for shift workers: blackout curtains, white noise machine, melatonin timing, consistent wake time on days off",
+                            metrics: { original_tokens: 7, optimized_tokens: 17, tokens_saved: 0, compression_ratio: "0%", clarity_gain: "+79%" }
+                        }
+                    }
+                },
+                {
+                    id: 'relationship',
+                    prompt: "I need help improving my relationship with my teenage daughter",
+                    analysis: {
+                        pseudo_antonym_clusters: [{
+                            phrase: "improving relationship",
+                            branches: [
+                                { term: "Increase Connection", pillar: "Bonding Time", context: "Create more positive shared experiences and quality time together" },
+                                { term: "Reduce Conflict", pillar: "De-escalation", context: "Learn to argue less frequently and resolve disagreements constructively" },
+                                { term: "Rebuild Trust", pillar: "Repair Work", context: "Address past hurts and restore safety in the relationship" }
+                            ]
+                        }],
+                        fulcrum_tokens: [
+                            { original: "teenage daughter", alternatives: [{ term: "15-year-old daughter" }, { term: "17-year-old daughter" }] }
+                        ],
+                        noise_segments: ["I need help"]
+                    },
+                    outcomes: {
+                        "Increase Connection_15-year-old daughter": {
+                            optimized_prompt: "Connection-building with 15-year-old: weekly one-on-one activity she chooses, listen without advice-giving, ask open-ended questions",
+                            metrics: { original_tokens: 11, optimized_tokens: 16, tokens_saved: 0, compression_ratio: "0%", clarity_gain: "+74%" }
+                        },
+                        "Reduce Conflict_17-year-old daughter": {
+                            optimized_prompt: "Conflict reduction with 17-year-old: set 3 non-negotiables, let go of control battles, use 'I feel' statements during disagreements",
+                            metrics: { original_tokens: 11, optimized_tokens: 17, tokens_saved: 0, compression_ratio: "0%", clarity_gain: "+76%" }
+                        },
+                        "Rebuild Trust_15-year-old daughter": {
+                            optimized_prompt: "Trust repair with 15-year-old: acknowledge past mistakes, follow through on promises consistently, respect privacy boundaries",
+                            metrics: { original_tokens: 11, optimized_tokens: 15, tokens_saved: 0, compression_ratio: "0%", clarity_gain: "+78%" }
+                        }
+                    }
+                },
+                {
+                    id: 'life_direction',
+                    prompt: "I feel lost and need to figure out my life direction",
+                    analysis: {
+                        pseudo_antonym_clusters: [{
+                            phrase: "life direction",
+                            branches: [
+                                { term: "Career Purpose", pillar: "Professional Fulfillment", context: "Find meaningful work that aligns with your values and utilizes your strengths" },
+                                { term: "Personal Identity", pillar: "Self-Understanding", context: "Clarify who you are, what matters to you, and what kind of life you want" },
+                                { term: "Practical Next Steps", pillar: "Action Orientation", context: "Identify concrete changes you can make now to move forward" }
+                            ]
+                        }],
+                        fulcrum_tokens: [
+                            { original: "lost", alternatives: [{ term: "directionless in mid-30s" }, { term: "uncertain after major life change" }] }
+                        ],
+                        noise_segments: ["I feel", "need to figure out"]
+                    },
+                    outcomes: {
+                        "Career Purpose_directionless in mid-30s": {
+                            optimized_prompt: "Career purpose discovery for mid-30s transition: values assessment, skills audit, informational interviews in 3 fields",
+                            metrics: { original_tokens: 12, optimized_tokens: 15, tokens_saved: 0, compression_ratio: "0%", clarity_gain: "+75%" }
+                        },
+                        "Personal Identity_uncertain after major life change": {
+                            optimized_prompt: "Identity work after life transition: journaling prompts for self-discovery, therapy for processing, try new activities monthly",
+                            metrics: { original_tokens: 12, optimized_tokens: 15, tokens_saved: 0, compression_ratio: "0%", clarity_gain: "+77%" }
+                        },
+                        "Practical Next Steps_directionless in mid-30s": {
+                            optimized_prompt: "Immediate action plan for life transition: one exploratory conversation weekly, daily 30min learning time, 90-day experiment",
+                            metrics: { original_tokens: 12, optimized_tokens: 15, tokens_saved: 0, compression_ratio: "0%", clarity_gain: "+73%" }
+                        }
+                    }
+                }
+            ]
+        };
+        
+        // Helper functions for demo mode
+        function showCategory(category) {
+            currentCategory = category;
+            
+            // Update button states
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.category === category);
+            });
+            
+            // Populate prompts list
+            const promptsList = document.getElementById('promptsList');
+            promptsList.innerHTML = '';
+            
+            DEMO_PROMPTS[category].forEach((prompt, index) => {
+                const item = document.createElement('button');
+                item.className = 'prompt-item';
+                item.textContent = prompt.prompt;
+                item.onclick = () => loadDemoPrompt(category, index);
+                promptsList.appendChild(item);
+            });
+        }
+        
+        function loadDemoPrompt(category, index) {
+            const prompt = DEMO_PROMPTS[category][index];
+            currentDemoPrompt = prompt;
+            document.getElementById('userPrompt').value = prompt.prompt;
+        }
+        
+        function toggleDemoMode() {
+            isDemoMode = document.getElementById('demoMode').checked;
+            
+            document.getElementById('apiKeyInput').classList.toggle('hidden', isDemoMode);
+            document.getElementById('demoModeInfo').classList.toggle('hidden', !isDemoMode);
+            document.getElementById('demoExamples').classList.toggle('hidden', !isDemoMode);
+            
+            // Make textarea readonly in demo mode
+            document.getElementById('userPrompt').readOnly = isDemoMode;
+            
+            if (isDemoMode) {
+                document.getElementById('userPrompt').value = '';
+                showCategory('business'); // Initialize with business category
+                resetSections();
+            } else {
+                document.getElementById('userPrompt').value = '';
+                document.getElementById('userPrompt').placeholder = 'Example: Help me grow my SaaS startup faster in Asia';
+            }
+        }
+        
+        // System prompts
+        const PHASE_1_PROMPT = `You are a thinking disambiguation assistant. Analyze the user's prompt and identify ambiguity.
+
+Your task:
+1. Detect "forks" - phrases that could mean 2-3 different things (mutually exclusive strategies)
+2. Detect "fulcrums" - vague terms that could be more precise (same strategy, higher resolution)
+3. Identify noise - unnecessary phrases like "help me", "you are an expert", etc.
+
+Output ONLY valid JSON in this format:
+{
+  "can_proceed_to_resolution": false,
+  "pseudo_antonym_clusters": [
+    {
+      "phrase": "the ambiguous phrase",
+      "branches": [
+        {
+          "term": "option 1",
+          "pillar": "strategic category",
+          "context": "brief explanation"
+        }
+      ]
+    }
+  ],
+  "fulcrum_tokens": [
+    {
+      "original": "vague term",
+      "alternatives": [
+        {"term": "precise alternative 1"},
+        {"term": "precise alternative 2"}
+      ]
+    }
+  ],
+  "noise_segments": ["phrase 1", "phrase 2"]
+}`;
+
+        const PHASE_2_PROMPT = `You are a prompt reconstruction assistant. Given the original prompt and user selections, create an optimized version.
+
+Your task:
+1. Apply the user's fork selection (replace the ambiguous phrase with their choice)
+2. Apply the user's fulcrum selections (replace vague terms with precise ones)
+3. Remove all noise segments
+4. Ensure the result is clear and concise
+
+Calculate clarity_gain as the improvement in specificity:
+- Count decision points resolved (forks chosen, fulcrums sharpened)
+- Estimate as percentage: (decisions_made × 25)% minimum
+- Cap at 95%
+
+Output ONLY valid JSON in this format:
+{
+  "optimized_prompt": "the improved prompt",
+  "metrics": {
+    "original_tokens": 20,
+    "optimized_tokens": 12,
+    "tokens_saved": 8,
+    "compression_ratio": "40%",
+    "clarity_gain": "+75%"
+  }
+}`;
+
+        let currentAnalysis = null;
+        let selectedFork = null;
+        let selectedFulcrums = {};
+        let originalPrompt = "";
+
+        async function analyzePrompt() {
+            const userPrompt = document.getElementById('userPrompt').value.trim();
+
+            if (!userPrompt) {
+                alert('Please select a prompt to analyze');
+                return;
+            }
+
+            // Demo mode path
+            if (isDemoMode) {
+                if (!currentDemoPrompt) {
+                    alert('Please select one of the example prompts above');
+                    return;
+                }
+                
+                originalPrompt = userPrompt;
+                resetSections();
+                
+                document.getElementById('loadingState').classList.remove('hidden');
+                document.getElementById('analyzeBtn').disabled = true;
+                
+                // Simulate API delay
+                setTimeout(() => {
+                    currentAnalysis = currentDemoPrompt.analysis;
+                    document.getElementById('loadingState').classList.add('hidden');
+                    document.getElementById('analyzeBtn').disabled = false;
+                    
+                    if (currentAnalysis.pseudo_antonym_clusters && currentAnalysis.pseudo_antonym_clusters.length > 0) {
+                        displayForks();
+                    }
+                }, 1500);
+                return;
+            }
+
+            // Real API path  
+            const apiKey = document.getElementById('apiKey').value.trim();
+            
+            if (!apiKey) {
+                alert('Please enter your Anthropic API key or enable Demo Mode');
+                return;
+            }
+
+            originalPrompt = userPrompt;
+            resetSections();
+            
+            document.getElementById('loadingState').classList.remove('hidden');
+            document.getElementById('analyzeBtn').disabled = true;
+
+            try {
+                const response = await fetch('https://api.anthropic.com/v1/messages', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': apiKey,
+                        'anthropic-version': '2023-06-01'
+                    },
+                    body: JSON.stringify({
+                        model: 'claude-sonnet-4-20250514',
+                        max_tokens: 2000,
+                        temperature: 0.3,
+                        system: PHASE_1_PROMPT,
+                        messages: [{
+                            role: 'user',
+                            content: `Analyze this prompt for ambiguity: "${userPrompt}"`
+                        }]
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error?.message || `API error: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                let analysisText = data.content[0].text;
+                
+                analysisText = analysisText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+                
+                currentAnalysis = JSON.parse(analysisText);
+                
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('analyzeBtn').disabled = false;
+
+                if (currentAnalysis.pseudo_antonym_clusters && currentAnalysis.pseudo_antonym_clusters.length > 0) {
+                    displayForks();
+                } else if (currentAnalysis.fulcrum_tokens && currentAnalysis.fulcrum_tokens.length > 0) {
+                    showFulcrums();
+                } else {
+                    displayResults({
+                        optimized_prompt: userPrompt,
+                        metrics: {
+                            original_tokens: estimateTokens(userPrompt),
+                            optimized_tokens: estimateTokens(userPrompt),
+                            tokens_saved: 0,
+                            compression_ratio: "0%",
+                            clarity_gain: "+0%"
+                        }
+                    });
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error analyzing prompt: ' + error.message);
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('analyzeBtn').disabled = false;
+            }
+        }
+
+        function displayForks() {
+            const forkSection = document.getElementById('forkSection');
+            const forkCards = document.getElementById('forkCards');
+            
+            forkCards.innerHTML = '';
+            
+            const cluster = currentAnalysis.pseudo_antonym_clusters[0];
+            
+            cluster.branches.forEach((branch, index) => {
+                const card = document.createElement('div');
+                card.className = 'fork-card';
+                card.onclick = () => selectFork(index);
+                
+                card.innerHTML = `
+                    <h3>${branch.term}</h3>
+                    <div class="pillar">${branch.pillar}</div>
+                    <p>${branch.context}</p>
+                `;
+                
+                forkCards.appendChild(card);
+            });
+            
+            forkSection.classList.remove('hidden');
+        }
+
+        function selectFork(index) {
+            selectedFork = currentAnalysis.pseudo_antonym_clusters[0].branches[index];
+            
+            const cards = document.querySelectorAll('.fork-card');
+            cards.forEach((card, i) => {
+                card.classList.toggle('selected', i === index);
+            });
+            
+            document.getElementById('continueBtn').disabled = false;
+        }
+
+        function showFulcrums() {
+            document.getElementById('forkSection').classList.add('hidden');
+            
+            const ghostSection = document.getElementById('ghostSection');
+            const ghostCards = document.getElementById('ghostCards');
+            
+            ghostCards.innerHTML = '';
+            
+            if (!currentAnalysis.fulcrum_tokens || currentAnalysis.fulcrum_tokens.length === 0) {
+                generateOptimized();
+                return;
+            }
+            
+            currentAnalysis.fulcrum_tokens.forEach((fulcrum, index) => {
+                const card = document.createElement('div');
+                card.className = 'ghost-card';
+                
+                const alternative = fulcrum.alternatives[0];
+                
+                card.innerHTML = `
+                    <h4>${fulcrum.original}</h4>
+                    <div class="ghost-options">
+                        <div class="ghost-option cold selected" data-fulcrum="${index}" data-choice="original" onclick="selectFulcrum(${index}, 'original')">
+                            ❄️ ${fulcrum.original}
+                        </div>
+                        <div class="ghost-arrow">→</div>
+                        <div class="ghost-option hot" data-fulcrum="${index}" data-choice="${alternative.term}" onclick="selectFulcrum(${index}, '${alternative.term.replace(/'/g, "\\'")}')">
+                            🔥 ${alternative.term}
+                        </div>
+                    </div>
+                `;
+                
+                ghostCards.appendChild(card);
+            });
+            
+            ghostSection.classList.remove('hidden');
+        }
+
+        function selectFulcrum(index, choice) {
+            if (choice === 'original') {
+                delete selectedFulcrums[currentAnalysis.fulcrum_tokens[index].original];
+            } else {
+                selectedFulcrums[currentAnalysis.fulcrum_tokens[index].original] = choice;
+            }
+            
+            const options = document.querySelectorAll(`[data-fulcrum="${index}"]`);
+            options.forEach(opt => {
+                opt.classList.remove('selected');
+                if (opt.dataset.choice === choice) {
+                    opt.classList.add('selected');
+                }
+            });
+        }
+
+        async function generateOptimized() {
+            document.getElementById('ghostSection').classList.add('hidden');
+            document.getElementById('loadingState').classList.remove('hidden');
+            
+            // Demo mode path - generate result based on user selections
+            if (isDemoMode && currentDemoPrompt) {
+                setTimeout(() => {
+                    // Build outcome key from selections
+                    let outcomeKey = selectedFork ? selectedFork.term : '';
+                    
+                    // Add fulcrum selections
+                    if (currentDemoPrompt.analysis.fulcrum_tokens) {
+                        currentDemoPrompt.analysis.fulcrum_tokens.forEach(fulcrum => {
+                            const selected = selectedFulcrums[fulcrum.original];
+                            if (selected) {
+                                outcomeKey += '_' + selected;
+                            }
+                        });
+                    }
+                    
+                    // Find matching outcome or use first one
+                    let result = currentDemoPrompt.outcomes[outcomeKey];
+                    if (!result) {
+                        // Fallback to first outcome if exact match not found
+                        result = Object.values(currentDemoPrompt.outcomes)[0];
+                    }
+                    
+                    document.getElementById('loadingState').classList.add('hidden');
+                    displayResults(result);
+                }, 1500);
+                return;
+            }
+            
+            // Real API path
+            const apiKey = document.getElementById('apiKey').value.trim();
+            
+            try {
+                const userSelections = {
+                    fork_choice: selectedFork ? selectedFork.term : null,
+                    fulcrum_choices: selectedFulcrums,
+                    noise_to_remove: currentAnalysis.noise_segments || []
+                };
+                
+                const response = await fetch('https://api.anthropic.com/v1/messages', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': apiKey,
+                        'anthropic-version': '2023-06-01'
+                    },
+                    body: JSON.stringify({
+                        model: 'claude-sonnet-4-20250514',
+                        max_tokens: 2000,
+                        temperature: 0.3,
+                        system: PHASE_2_PROMPT,
+                        messages: [{
+                            role: 'user',
+                            content: `Original prompt: "${originalPrompt}"\n\nUser selections: ${JSON.stringify(userSelections)}\n\nCreate an optimized version.`
+                        }]
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                let resultText = data.content[0].text;
+                
+                resultText = resultText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+                
+                const result = JSON.parse(resultText);
+                
+                document.getElementById('loadingState').classList.add('hidden');
+                displayResults(result);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error optimizing prompt: ' + error.message);
+                document.getElementById('loadingState').classList.add('hidden');
+            }
+        }
+
+        function displayResults(result) {
+            document.getElementById('optimizedPrompt').textContent = result.optimized_prompt;
+            document.getElementById('tokensSaved').textContent = result.metrics.tokens_saved || 0;
+            document.getElementById('compressionRatio').textContent = result.metrics.compression_ratio || '0%';
+            document.getElementById('clarityGain').textContent = result.metrics.clarity_gain || '+0%';
+            
+            document.getElementById('resultsSection').classList.remove('hidden');
+            document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function resetSections() {
+            document.getElementById('forkSection').classList.add('hidden');
+            document.getElementById('ghostSection').classList.add('hidden');
+            document.getElementById('resultsSection').classList.add('hidden');
+            document.getElementById('loadingState').classList.add('hidden');
+            
+            selectedFork = null;
+            selectedFulcrums = {};
+        }
+
+        function resetTool() {
+            document.getElementById('userPrompt').value = '';
+            resetSections();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function copyToClipboard() {
+            const text = document.getElementById('optimizedPrompt').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '✓ Copied!';
+                setTimeout(() => btn.textContent = originalText, 2000);
+            });
+        }
+
+        function openInChatGPT() {
+            const optimizedPrompt = document.getElementById('optimizedPrompt').textContent;
+            const encoded = encodeURIComponent(optimizedPrompt);
+            window.open(`https://chat.openai.com/?q=${encoded}`, '_blank');
+        }
+
+        function openInClaude() {
+            const optimizedPrompt = document.getElementById('optimizedPrompt').textContent;
+            navigator.clipboard.writeText(optimizedPrompt);
+            window.open('https://claude.ai/new', '_blank');
+            alert('Prompt copied! Paste it into Claude.');
+        }
+
+        function estimateTokens(text) {
+            return Math.ceil(text.length / 4);
+        }
+    </script>
+</body>
+</html>
